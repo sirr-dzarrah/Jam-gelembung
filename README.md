@@ -1,1 +1,329 @@
 # Jam-gelembung
+<script type="text/javascript">
+        var gk_isXlsx = false;
+        var gk_xlsxFileLookup = {};
+        var gk_fileData = {};
+        function filledCell(cell) {
+          return cell !== '' && cell != null;
+        }
+        function loadFileData(filename) {
+        if (gk_isXlsx && gk_xlsxFileLookup[filename]) {
+            try {
+                var workbook = XLSX.read(gk_fileData[filename], { type: 'base64' });
+                var firstSheetName = workbook.SheetNames[0];
+                var worksheet = workbook.Sheets[firstSheetName];
+
+                // Convert sheet to JSON to filter blank rows
+                var jsonData = XLSX.utils.sheet_to_json(worksheet, { header: 1, blankrows: false, defval: '' });
+                // Filter out blank rows (rows where all cells are empty, null, or undefined)
+                var filteredData = jsonData.filter(row => row.some(filledCell));
+
+                // Heuristic to find the header row by ignoring rows with fewer filled cells than the next row
+                var headerRowIndex = filteredData.findIndex((row, index) =>
+                  row.filter(filledCell).length >= filteredData[index + 1]?.filter(filledCell).length
+                );
+                // Fallback
+                if (headerRowIndex === -1 || headerRowIndex > 25) {
+                  headerRowIndex = 0;
+                }
+
+                // Convert filtered JSON back to CSV
+                var csv = XLSX.utils.aoa_to_sheet(filteredData.slice(headerRowIndex)); // Create a new sheet from filtered array of arrays
+                csv = XLSX.utils.sheet_to_csv(csv, { header: 1 });
+                return csv;
+            } catch (e) {
+                console.error(e);
+                return "";
+            }
+        }
+        return gk_fileData[filename] || "";
+        }
+        </script><!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Bouncing Transparent Soap Bubble with Imperfect Reflection</title>
+    <style>
+        body {
+            margin: 0;
+            height: 100vh;
+            background: #000;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            overflow: hidden;
+        }
+
+        canvas {
+            border: 2px solid rgba(255, 255, 255, 0.2);
+            background: #0a0a1a;
+            width: 100%;
+            height: 100%;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="bubbleCanvas"></canvas>
+    <script>
+        const canvas = document.getElementById('bubbleCanvas');
+        const ctx = canvas.getContext('2d');
+
+        // Create offscreen canvas for background
+        const bgCanvas = document.createElement('canvas');
+        const bgCtx = bgCanvas.getContext('2d');
+
+        // Bubble properties
+        let bubble = {
+            radius: 100,
+            dx: 3,
+            dy: 3
+        };
+
+        // Star properties (static, no twinkling)
+        const stars = [];
+
+        // Moon animation properties
+        let moonRotation = 0;
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            bgCanvas.width = canvas.width;
+            bgCanvas.height = canvas.height;
+
+            // Update bubble position and radius based on canvas size
+            bubble.radius = Math.min(canvas.width, canvas.height) * 0.1; // 10% of smaller dimension
+            bubble.x = bubble.x || canvas.width / 2;
+            bubble.y = bubble.y || canvas.height / 2;
+
+            // Regenerate stars
+            stars.length = 0;
+            const starCount = Math.floor(canvas.width * canvas.height / 5000); // Scale star count by area
+            for (let i = 0; i < starCount; i++) {
+                stars.push({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    radius: Math.random() * 1.5 + 0.5,
+                    opacity: Math.random() * 0.5 + 0.5
+                });
+            }
+        }
+
+        function drawBackground(context) {
+            context.clearRect(0, 0, context.canvas.width, context.canvas.height);
+            context.fillStyle = '#0a0a1a';
+            context.fillRect(0, 0, context.canvas.width, context.canvas.height);
+
+            // Draw 3D full moon with craters
+            const moonRadius = Math.min(canvas.width, canvas.height) * 0.1;
+            const moonX = canvas.width / 2 + moonRadius; // Slightly offset from center
+            const moonY = canvas.height / 2 - moonRadius;
+
+            // Simulate 3D effect with golden gradient
+            const gradient = context.createRadialGradient(
+                moonX - moonRadius * 0.5 * Math.cos(moonRotation),
+                moonY - moonRadius * 0.5 * Math.sin(moonRotation),
+                0,
+                moonX,
+                moonY,
+                moonRadius
+            );
+            gradient.addColorStop(0, 'rgba(255, 215, 0, 0.9)'); // Gold
+            gradient.addColorStop(1, 'rgba(184, 134, 11, 0.7)'); // Darker gold
+
+            // Draw full moon
+            context.beginPath();
+            context.arc(moonX, moonY, moonRadius, 0, Math.PI * 2);
+            context.fillStyle = gradient;
+            context.fill();
+
+            // Draw craters for 3D effect
+            const craters = [
+                { x: -0.4, y: -0.3, r: 0.2 },
+                { x: 0.3, y: 0.2, r: 0.15 },
+                { x: -0.1, y: 0.4, r: 0.1 },
+                { x: 0.2, y: -0.2, r: 0.12 },
+            ];
+            craters.forEach(crater => {
+                context.beginPath();
+                context.arc(
+                    moonX + crater.x * moonRadius,
+                    moonY + crater.y * moonRadius,
+                    crater.r * moonRadius,
+                    0,
+                    Math.PI * 2
+                );
+                context.fillStyle = 'rgba(139, 69, 19, 0.6)'; // Dark brown for craters
+                context.strokeStyle = 'rgba(105, 105, 105, 0.3)';
+                context.lineWidth = 1;
+                context.fill();
+                context.stroke();
+            });
+
+            // Draw stars
+            stars.forEach(star => {
+                context.beginPath();
+                context.arc(star.x, star.y, star.radius, 0, Math.PI * 2);
+                context.fillStyle = `rgba(255, 255, 255, ${star.opacity})`;
+                context.fill();
+            });
+        }
+
+        function drawBubble() {
+            // Simple transparent gradient
+            const gradient = ctx.createRadialGradient(
+                bubble.x - bubble.radius * 0.3,
+                bubble.y - bubble.radius * 0.3,
+                0,
+                bubble.x,
+                bubble.y,
+                bubble.radius
+            );
+            gradient.addColorStop(0, 'rgba(255, 255, 255, 0.3)');
+            gradient.addColorStop(1, 'rgba(255, 255, 255, 0)');
+
+            // Draw bubble
+            ctx.beginPath();
+            ctx.arc(bubble.x, bubble.y, bubble.radius, 0, Math.PI * 2);
+            ctx.fillStyle = gradient;
+            ctx.fill();
+            ctx.lineWidth = 1.5;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.5)';
+            ctx.stroke();
+
+            // Draw clock hands
+            const now = new Date();
+            const hours = now.getHours() % 12;
+            const minutes = now.getMinutes();
+            const seconds = now.getSeconds();
+
+            // Hour hand
+            ctx.save();
+            ctx.translate(bubble.x, bubble.y);
+            const hourAngle = (hours * Math.PI / 6) + (minutes * Math.PI / (6 * 60)) + (seconds * Math.PI / (3600));
+            ctx.rotate(hourAngle);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(0, -bubble.radius * 0.5);
+            ctx.lineWidth = 6;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.stroke();
+            ctx.restore();
+
+            // Minute hand
+            ctx.save();
+            ctx.translate(bubble.x, bubble.y);
+            const minuteAngle = (minutes * Math.PI / 30) + (seconds * Math.PI / (30 * 60));
+            ctx.rotate(minuteAngle);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(0, -bubble.radius * 0.7);
+            ctx.lineWidth = 4;
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.stroke();
+            ctx.restore();
+
+            // Second hand
+            ctx.save();
+            ctx.translate(bubble.x, bubble.y);
+            const secondAngle = (seconds * Math.PI / 30);
+            ctx.rotate(secondAngle);
+            ctx.beginPath();
+            ctx.moveTo(0, 0);
+            ctx.lineTo(0, -bubble.radius * 0.8);
+            ctx.lineWidth = 2;
+            ctx.strokeStyle = 'rgba(255, 0, 0, 0.8)';
+            ctx.stroke();
+            ctx.restore();
+
+            // Draw center circle
+            ctx.beginPath();
+            ctx.arc(bubble.x, bubble.y, 5, 0, Math.PI * 2);
+            ctx.fillStyle = 'rgba(255, 255, 255, 0.8)';
+            ctx.fill();
+        }
+
+        function update() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            // Draw background on offscreen canvas
+            drawBackground(bgCtx);
+
+            // Draw unblurred background
+            ctx.drawImage(bgCanvas, 0, 0);
+
+            // Save context state
+            ctx.save();
+
+            // Create clipping region for the bubble
+            ctx.beginPath();
+            ctx.arc(bubble.x, bubble.y, bubble.radius, 0, Math.PI * 2);
+            ctx.clip();
+
+            // Draw blurred background only within the bubble
+            ctx.filter = 'blur(5px)';
+            ctx.drawImage(bgCanvas, 0, 0);
+            ctx.filter = 'none';
+
+            // Restore context to remove clipping
+            ctx.restore();
+
+            // Update bubble position
+            bubble.x += bubble.dx;
+            bubble.y += bubble.dy;
+
+            // Imperfect reflection on canvas edges
+            const energyLoss = 0.9; // 10% speed reduction per bounce
+            const maxAngleDeviation = Math.PI / 6; // Max 30° deviation from perfect reflection
+
+            if (bubble.x + bubble.radius > canvas.width || bubble.x - bubble.radius < 0) {
+                // Calculate incident angle
+                const incidentAngle = Math.atan2(bubble.dy, bubble.dx);
+                // Perfect reflection angle (reverse x-component)
+                const perfectAngle = Math.atan2(bubble.dy, -bubble.dx);
+                // Add random deviation
+                const deviation = (Math.random() - 0.5) * maxAngleDeviation;
+                const newAngle = perfectAngle + deviation;
+                // Calculate new speed with energy loss
+                const speed = Math.sqrt(bubble.dx * bubble.dx + bubble.dy * bubble.dy) * energyLoss;
+                bubble.dx = speed * Math.cos(newAngle);
+                bubble.dy = speed * Math.sin(newAngle);
+                // Clamp position
+                bubble.x = Math.max(bubble.radius, Math.min(canvas.width - bubble.radius, bubble.x));
+            }
+            if (bubble.y + bubble.radius > canvas.height || bubble.y - bubble.radius < 0) {
+                // Calculate incident angle
+                const incidentAngle = Math.atan2(bubble.dy, bubble.dx);
+                // Perfect reflection angle (reverse y-component)
+                const perfectAngle = Math.atan2(-bubble.dy, bubble.dx);
+                // Add random deviation
+                const deviation = (Math.random() - 0.5) * maxAngleDeviation;
+                const newAngle = perfectAngle + deviation;
+                // Calculate new speed with energy loss
+                const speed = Math.sqrt(bubble.dx * bubble.dx + bubble.dy * bubble.dy) * energyLoss;
+                bubble.dx = speed * Math.cos(newAngle);
+                bubble.dy = speed * Math.sin(newAngle);
+                // Clamp position
+                bubble.y = Math.max(bubble.radius, Math.min(canvas.height - bubble.radius, bubble.y));
+            }
+
+            // Update moon rotation for 3D effect
+            moonRotation += 0.005; // Slow rotation
+
+            // Draw bubble with clock
+            drawBubble();
+
+            requestAnimationFrame(update);
+        }
+
+        // Handle resize and orientation changes
+        window.addEventListener('resize', resizeCanvas);
+        window.addEventListener('orientationchange', resizeCanvas);
+        resizeCanvas();
+
+        // Start animation
+        update();
+    </script>
+</body>
+</html>
